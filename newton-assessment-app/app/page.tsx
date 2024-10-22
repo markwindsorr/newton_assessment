@@ -1,73 +1,205 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Search } from 'lucide-react';
+import { FaStar } from 'react-icons/fa';
 
-interface AssetData {
-  symbol: string;
-  bid: number;
-  ask: number;
-  spot: number;
-  change: number;
+
+const Card = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+  return <div className={`card ${className}`}>{children}</div>
 }
 
-export default function AssetTable() {
-  const [assetData, setAssetData] = useState<Record<string, AssetData>>({});
+interface CryptoData {
+  symbol: string;
+  timestamp: number;
+  bid: number | null;
+  ask: number | null;
+  spot: number | null;
+  change: number | null;
+}
+
+const assets = [
+  "BTC", "ETH", "LTC", "XRP", "BCH", "USDC", "XMR", "XLM",
+  "DOGE", "LINK", "MATIC", "UNI", "COMP", "AAVE", "DAI",
+  "SUSHI", "SNX", "CRV", "DOT", "YFI", "MKR", "PAXG", "ADA", "BAT", "ENJ",
+  "AXS", "DASH", "EOS", "BAL", "KNC", "ZRX", "SAND", "GRT", "QNT", "ETC",
+  "ETHW", "1INCH", "CHZ", "CHR", "SUPER", "ELF", "OMG", "FTM", "MANA",
+  "SOL", "ALGO", "LUNC", "UST", "ZEC", "XTZ", "AMP", "REN", "UMA", "SHIB",
+  "LRC", "ANKR", "HBAR", "EGLD", "AVAX", "ONE", "GALA", "ALICE", "ATOM",
+  "DYDX", "CELO", "STORJ", "SKL", "CTSI", "BAND", "ENS", "RNDR", "MASK",
+  "APE"
+];
+
+const CryptoApp = () => {
+  const [cryptoList, setCryptoList] = useState<CryptoData[]>(
+    assets.map(asset => ({
+      symbol: `${asset}CAD`,
+      timestamp: 0,
+      bid: null,
+      ask: null,
+      spot: null,
+      change: null
+    }))
+  );
 
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080/markets/ws');
+    const socket = new WebSocket('ws://localhost:8080');
 
-    ws.onopen = () => {
-      console.log('Connected to WebSocket');
-      ws.send(JSON.stringify({ event: 'subscribe', channel: 'rates' }));
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ event: 'subscribe', channel: 'rates' }));
     };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      const newAssetData: Record<string, AssetData> = {};
-      data.forEach((item: any) => {
-        newAssetData[item.data.symbol] = item.data;
-      });
-      setAssetData(prevData => ({ ...prevData, ...newAssetData }));
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data[0] && data[0].data) {
+          updateCryptoData(data[0].data);
+        } else {
+          console.error('Unexpected data format:', data);
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
     };
 
-    ws.onerror = (error) => {
+    socket.onerror = (error) => {
       console.error('WebSocket error:', error);
     };
 
-    ws.onclose = () => {
-      console.log('Disconnected from WebSocket');
+    socket.onclose = (event) => {
+      console.log('WebSocket closed:', event);
     };
 
     return () => {
-      ws.close();
+      socket.close();
     };
   }, []);
 
+  const updateCryptoData = (newData: CryptoData) => {
+    setCryptoList(prevList => 
+      prevList.map(item => 
+        item.symbol === newData.symbol ? { ...item, ...newData } : item
+      )
+    );
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Asset Rates</h1>
-      <table className="min-w-full bg-white">
-        <thead>
-          <tr>
-            <th className="px-4 py-2">Symbol</th>
-            <th className="px-4 py-2">Bid</th>
-            <th className="px-4 py-2">Ask</th>
-            <th className="px-4 py-2">Spot</th>
-            <th className="px-4 py-2">Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Object.values(assetData).map((asset) => (
-            <tr key={asset.symbol}>
-              <td className="border px-4 py-2">{asset.symbol}</td>
-              <td className="border px-4 py-2">{asset.bid}</td>
-              <td className="border px-4 py-2">{asset.ask}</td>
-              <td className="border px-4 py-2">{asset.spot}</td>
-              <td className="border px-4 py-2">{asset.change}%</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="min-h-screen bg-[#1a1b25] text-white px-8">
+      {/* Header */}
+      <header className="flex justify-between items-center py-8">
+        <div className="text-[#00ffb9] text-2xl font-bold">Newton</div>
+        <div className="flex items-center gap-4">
+          <button className="text-gray-400 hover:text-white">LOG IN</button>
+          <button className="bg-[#00ffb9] text-black px-4 py-2 rounded-full hover:bg-[#00dfaa]">
+            SIGN UP
+          </button>
+
+        </div>
+      </header>
+      
+      <div className="px-64">
+        {/* Welcome Section and Top Coins */}
+        <div className="flex justify-between items-start mb-12">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Welcome to Newton!</h1>
+            <p className="text-gray-400 mb-4">Crypto for Canadians</p>
+            <button className="bg-[#00ffb9] text-black px-8 py-3 rounded-full hover:bg-[#00dfaa] font-bold">
+              SIGN UP
+            </button>
+          </div>
+
+          {/* Top Coins */}
+          <div className="flex gap-4">
+            {['BTC', 'ETH', 'SOL'].map((symbol) => {
+              const coin = cryptoList.find(c => c.symbol.startsWith(symbol));
+              return (
+                <Card key={symbol} className="bg-[#252732] p-4 rounded-lg w-28">
+                  <div className="flex flex-col items-center">
+                    <div className="w-12 h-12 rounded-full bg-orange-500 mb-2"></div>
+                    <span className="font-bold mb-1">{symbol}</span>
+                    <span className={`text-sm ${
+                      coin?.change && coin.change > 0 ? 'text-[#00ffb9]' : 'text-red-500'
+                    }`}>
+                      {coin?.change !== null ? `${coin.change.toFixed(2)}%` : '-'}
+                    </span>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mb-6 relative">
+          <Search className="absolute left-4 top-3 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search coin"
+            className="w-full bg-[#252732] border-none rounded-lg pl-12 pr-4 py-3 text-white placeholder-gray-400"
+          />
+        </div>
+
+        {/* USD Toggle */}
+        <div className="flex items-center gap-2 mb-6 text-gray-400">
+          <span>Display USD pricing</span>
+          <div className="w-12 h-6 bg-[#252732] rounded-full relative cursor-pointer">
+            <div className="w-4 h-4 bg-gray-400 rounded-full absolute left-1 top-1"></div>
+          </div>
+        </div>
+
+        {/* Crypto Table */}
+        <div className="overflow-x-auto" style={{ backgroundColor: '#1a1b25' }}>
+          <table className="w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead>
+              <tr className="text-gray-400 text-left" style={{ backgroundColor: 'transparent' }}>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>Coin</th>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>24h change</th>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>Live price</th>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>Sell price</th>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>Buy price</th>
+                <th className="pb-4 font-normal" style={{ border: 'none', borderBottom: '1px solid #2d2d3d' }}>Watch</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cryptoList.map((crypto, index) => (
+                <tr 
+                  key={crypto.symbol} 
+                  style={{ 
+                    backgroundColor: '#1a1b25', 
+                    borderBottom: index === cryptoList.length - 1 ? 'none' : '1px solid #2d2d3d'
+                  }}
+                >
+                  <td className="py-4" style={{ border: 'none' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-500"></div>
+                      <div>
+                        <div className="font-bold">{crypto.symbol.split('_')[0]}</div>
+                        <div className="text-gray-400 text-sm">{crypto.symbol}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className={`${
+                    crypto.change && crypto.change > 0 ? 'text-[#00ffb9]' : 'text-red-500'
+                  }`} style={{ border: 'none' }}>
+                    {crypto.change !== null ? `${crypto.change.toFixed(2)}%` : 'N/A'}
+                  </td>
+                  <td style={{ border: 'none' }}>{crypto.spot !== null ? `$${crypto.spot.toFixed(2)}` : 'N/A'}</td>
+                  <td style={{ border: 'none' }}>{crypto.bid !== null ? `$${crypto.bid.toFixed(2)}` : 'N/A'}</td>
+                  <td style={{ border: 'none' }}>{crypto.ask !== null ? `$${crypto.ask.toFixed(2)}` : 'N/A'}</td>
+                  <td style={{ border: 'none' }}>
+                    <button className="text-gray-400 hover:text-white">
+                      <FaStar className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   );
-}
+};
+
+export default CryptoApp;

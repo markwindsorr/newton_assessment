@@ -1,12 +1,11 @@
 const WebSocket = require('ws');
-const http = require('http');
+const ccxt = require('ccxt');
 
-const server = http.createServer();
-const wss = new WebSocket.Server({ server, path: '/markets/ws' });
+const exchange = new ccxt.pro.binance();
 
 const assets = [
   "BTC", "ETH", "LTC", "XRP", "BCH", "USDC", "XMR", "XLM",
-  "USDT", "QCAD", "DOGE", "LINK", "MATIC", "UNI", "COMP", "AAVE", "DAI",
+ "DOGE", "LINK", "MATIC", "UNI", "COMP", "AAVE", "DAI",
   "SUSHI", "SNX", "CRV", "DOT", "YFI", "MKR", "PAXG", "ADA", "BAT", "ENJ",
   "AXS", "DASH", "EOS", "BAL", "KNC", "ZRX", "SAND", "GRT", "QNT", "ETC",
   "ETHW", "1INCH", "CHZ", "CHR", "SUPER", "ELF", "OMG", "FTM", "MANA",
@@ -16,31 +15,40 @@ const assets = [
   "APE"
 ];
 
-const prices = Object.fromEntries(assets.map(asset => [asset, 1000]));
-
-const generateData = () => {
-    return assets.map(asset => {
-        const changePercentage = (Math.random() - 0.5) * 0.5;
-        const priceChange = prices[asset] * changePercentage;
-        prices[asset] = Math.max(0.01, prices[asset] + priceChange);
-
-        const bid = prices[asset] * (0.99 + Math.random() * 0.01);
-        const ask = prices[asset] * (1 + Math.random() * 0.01);
-
-        return {
-            channel: "rates",
-            event: "data",
-            data: {
-                symbol: `${asset}_CAD`,
-                timestamp: Math.floor(Date.now() / 1000),
-                bid: parseFloat(bid.toFixed(2)),
-                ask: parseFloat(ask.toFixed(2)),
-                spot: parseFloat(prices[asset].toFixed(2)),
-                change: parseFloat((changePercentage * 100).toFixed(2))
-            }
-        };
-    });
+async function watchTickers(ws) {
+    const symbols = assets.filter(asset => asset !== 'USDT').map(asset => `${asset}/USDT`);
+    const tickerPromises = symbols.map(symbol => watchTickerContinuously(symbol, ws));
+    await Promise.all(tickerPromises);
 }
+
+async function watchTickerContinuously(symbol, ws) {
+
+    // Im grabbing USDT values then multiplying them by 1.3 to get CAD values
+    while (true) {
+        try {
+            const ticker = await exchange.watchTicker(symbol);
+            const asset = symbol.split('/')[0];
+            const formattedTicker = {
+                channel: "rates",
+                event: "data",
+                data: {
+                    symbol: `${asset}CAD`,
+                    timestamp: Math.floor(Date.now() / 1000),
+                    bid: ticker.bid ? parseFloat((ticker.bid * 1.3).toFixed(2)) : null,
+                    ask: ticker.ask ? parseFloat((ticker.ask * 1.3).toFixed(2)) : null,
+                    spot: ticker.last ? parseFloat((ticker.last * 1.3).toFixed(2)) : null,
+                    change: ticker.percentage ? parseFloat(ticker.percentage.toFixed(2)) : null
+                }
+            };
+            ws.send(JSON.stringify([formattedTicker]));
+        } catch (e) {
+            console.log(`Error watching ticker for ${symbol}:`, e);
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+}
+
+const wss = new WebSocket.Server({ port: 8080 });
 
 wss.on('connection', (ws) => {
     console.log('Client connected');
@@ -48,20 +56,13 @@ wss.on('connection', (ws) => {
     ws.on('message', (message) => {
         const data = JSON.parse(message);
         if (data.event === 'subscribe' && data.channel === 'rates') {
-            const interval = setInterval(() => {
-                const updates = generateData();
-                ws.send(JSON.stringify(updates));
-            }, 1000);
-
-            ws.on('close', () => {
-                clearInterval(interval);
-                console.log('Client disconnected');
-            });
+            watchTickers(ws);
         }
+    });
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
     });
 });
 
-const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-    console.log(`WebSocket server is running on ws://localhost:${PORT}/markets/ws`);
-});
+console.log('WebSocket server is running on ws://localhost:8080');
