@@ -6,7 +6,7 @@ Here's a preview of the frontend interface:
 
 ![Frontend Preview](frontend.png)
 
-This project consists of a Next.js application that consumes real-time market data from a WebSocket server. Im using my favourite package ccxt to stream market data. I then multiply by price data by 1.3 to get CAD values.
+This project consists of a Next.js application that consumes real-time market data from a WebSocket server. Im using my favourite package ccxt to stream market data.
 
 Further considersations to implement: search, side bar buttons and switching between cad and usd values
 

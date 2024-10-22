@@ -15,13 +15,13 @@ const assets = [
   "APE"
 ];
 
-async function watchTickers(ws) {
+const watchTickers = async (ws) => {
     const symbols = assets.filter(asset => asset !== 'USDT').map(asset => `${asset}/USDT`);
     const tickerPromises = symbols.map(symbol => watchTickerContinuously(symbol, ws));
     await Promise.all(tickerPromises);
 }
 
-async function watchTickerContinuously(symbol, ws) {
+const watchTickerContinuously = async (symbol, ws) => {
 
     // Im grabbing USDT values then multiplying them by 1.3 to get CAD values
     while (true) {
