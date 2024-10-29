@@ -16,53 +16,93 @@ const assets = [
 ];
 
 const watchTickers = async (ws) => {
-    const symbols = assets.filter(asset => asset !== 'USDT').map(asset => `${asset}/USDT`);
+    // Creates a new array of symbols with USDT tacked onto the end because CCXT watchTicker stream wants it in that format
+    const symbols = assets.map(asset => `${asset}/USDT`);
+    // Creates an array of promises that will watch tickers for each symbol
     const tickerPromises = symbols.map(symbol => watchTickerContinuously(symbol, ws));
+    // Waits for all promises to resolve
     await Promise.all(tickerPromises);
 }
 
 const watchTickerContinuously = async (symbol, ws) => {
 
-    // Im grabbing USDT values then multiplying them by 1.3 to get CAD values
+    // This is a while loop that will run indefinitely until the server is stopped
+    // CCXT uses while loop to stream data
     while (true) {
         try {
+            // CCXT watchTicker method is used to stream real-time market data for a specific symbol
             const ticker = await exchange.watchTicker(symbol);
+            // Split the symbol with the forward slash and grab the first element since we want to display CAD values
             const asset = symbol.split('/')[0];
+            // Formats the ticker data to match the expected JSON structure
+            // We can also do the formatting in the frontend, but I did it here for simplicity
+            // Im grabbing USDT values then multiplying them by 1.3 to get CAD values
             const formattedTicker = {
                 channel: "rates",
                 event: "data",
                 data: {
                     symbol: `${asset}CAD`,
-                    timestamp: Math.floor(Date.now() / 1000),
-                    bid: ticker.bid ? parseFloat((ticker.bid * 1.3).toFixed(2)) : null,
+                    timestamp: Math.floor(Date.now() / 1000), // Conerts Javascripts millisecond timestamp to a Unix timestamp
+                    bid: ticker.bid ? parseFloat((ticker.bid * 1.3).toFixed(2)) : null, // Data comes in as strings. We convert to float and use .toFixed(2) to format with 2 decimals.
                     ask: ticker.ask ? parseFloat((ticker.ask * 1.3).toFixed(2)) : null,
                     spot: ticker.last ? parseFloat((ticker.last * 1.3).toFixed(2)) : null,
                     change: ticker.percentage ? parseFloat(ticker.percentage.toFixed(2)) : null
                 }
             };
+            // Sends the formatted ticker data to the client
+            // The array format allows for potential batch updates, so you could send multiple tickers in on update. 1 for now
             ws.send(JSON.stringify([formattedTicker]));
         } catch (e) {
             console.log(`Error watching ticker for ${symbol}:`, e);
         }
+        // Waits a second before running the loop again.
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }
 
+// Creates a new Websocket server instance that listens for incoming connections on port 8080
 const wss = new WebSocket.Server({ port: 8080 });
 
+
+/**
+ *  The .on() method is an event listener in Node that comes from the EventEmitter class. Its used to handle
+ *  events by attaching a callback function that executes when a specified event occcurs.
+ */
+
+
+// Our WebSocket Server Events
+// Connection event
 wss.on('connection', (ws) => {
+    // Logs a message notifying client has connected
     console.log('Client connected');
 
+    // Message Event. This event is triggered when a message is received from the client.
     ws.on('message', (message) => {
+        // Parses the message string as a JSON object
         const data = JSON.parse(message);
+        // If the event is a subscribe event and the channel is rates, then watch the tickers
         if (data.event === 'subscribe' && data.channel === 'rates') {
             watchTickers(ws);
         }
     });
-
+    // Close event. This event is triggered when the WebSocket connection is closed.
     ws.on('close', () => {
         console.log('Client disconnected');
     });
 });
 
 console.log('WebSocket server is running on ws://localhost:8080');
+
+
+/**
+ * Other considerations. 
+ * 
+ * Formatting small value tokens (SHIB) Use a different .toFixed() precision
+ *  
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ */

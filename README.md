@@ -22,6 +22,15 @@ Further considersations to implement: search, side bar buttons and switching bet
 
 First, you need to install the dependencies for both the Next.js app and the WebSocket server.
 
+```bash
+cd newton-assessment-app
+npm install
+```
+
+```bash
+cd websocket-server
+npm install
+```
 
 ### Step 2: Start the WebSocket Server
 

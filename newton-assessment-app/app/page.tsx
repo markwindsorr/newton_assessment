@@ -19,14 +19,14 @@ interface CryptoData {
 }
 
 const assets = [
-  "BTC", "ETH", "LTC", "XRP", "BCH", "USDC", "XMR", "XLM",
-  "DOGE", "LINK", "MATIC", "UNI", "COMP", "AAVE", "DAI",
+  "BTC", "ETH", "LTC", "XRP", "BCH",  "XLM",
+  "DOGE", "LINK", "UNI", "COMP", "AAVE", 
   "SUSHI", "SNX", "CRV", "DOT", "YFI", "MKR", "PAXG", "ADA", "BAT", "ENJ",
   "AXS", "DASH", "EOS", "BAL", "KNC", "ZRX", "SAND", "GRT", "QNT", "ETC",
-  "ETHW", "1INCH", "CHZ", "CHR", "SUPER", "ELF", "OMG", "FTM", "MANA",
-  "SOL", "ALGO", "LUNC", "UST", "ZEC", "XTZ", "AMP", "REN", "UMA", "SHIB",
+ "1INCH", "CHZ", "CHR", "SUPER", "ELF", "FTM", "MANA",
+  "SOL", "ALGO", "LUNC", "ZEC", "XTZ", "AMP", "REN", "UMA", "SHIB",
   "LRC", "ANKR", "HBAR", "EGLD", "AVAX", "ONE", "GALA", "ALICE", "ATOM",
-  "DYDX", "CELO", "STORJ", "SKL", "CTSI", "BAND", "ENS", "RNDR", "MASK",
+  "DYDX", "CELO", "STORJ", "SKL", "CTSI", "BAND", "ENS",  "MASK",
   "APE"
 ];
 
@@ -43,15 +43,21 @@ const CryptoApp = () => {
   );
 
   useEffect(() => {
+    // Creates a new WebSocket connection to the server running on localhost at port 8080
     const socket = new WebSocket('ws://localhost:8080');
 
+    // Event listener for when the socket connection is opened
     socket.onopen = () => {
+      // Sends a subscribe event to the server with the channel set to rates
       socket.send(JSON.stringify({ event: 'subscribe', channel: 'rates' }));
     };
 
+    // Event listener for when a message is received from the server
     socket.onmessage = (event) => {
       try {
+        // Parses the message string as a JSON object
         const data = JSON.parse(event.data);
+        // If the message is an array and the first element has data, then update the crypto data (data is an array)
         if (data[0] && data[0].data) {
           updateCryptoData(data[0].data);
         } else {
@@ -62,24 +68,29 @@ const CryptoApp = () => {
       }
     };
 
+    // Event listener for when an error occurs with the WebSocket connection
     socket.onerror = (error) => {
       console.error('WebSocket error:', error);
     };
 
+    // Event listener for when the WebSocket connection is closed
     socket.onclose = (event) => {
       console.log('WebSocket closed:', event);
     };
 
+    // Cleanup function to close the WebSocket connection when the component unmounts
+    // This is important to prevent memory leaks and ensure resources are properly released
     return () => {
       socket.close();
     };
   }, []);
 
   const updateCryptoData = (newData: CryptoData) => {
-    setCryptoList(prevList => 
-      prevList.map(item => 
+    setCryptoList(prevList =>  // Using state updater function
+      prevList.map(item =>   // Map over each item in the list
+        // If symbols match, update the item, otherwise keep it unchanged
         item.symbol === newData.symbol ? { ...item, ...newData } : item
-      )
+        )
     );
   };
 

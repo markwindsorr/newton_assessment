@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  websocket-server:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_SECRET=${BINANCE_SECRET}
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
