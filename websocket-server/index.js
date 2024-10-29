@@ -98,11 +98,14 @@ console.log('WebSocket server is running on ws://localhost:8080');
  * Other considerations. 
  * 
  * Formatting small value tokens (SHIB) Use a different .toFixed() precision
- *  
+ * Rate limiting to prevent abuse (Create RateLimiter  that takes in client user ids and checks for max requests)
+ * Connection limits to prevent server overload (Create a connection limiter that checks for max connections and rejects new connections if limit is reached        )
+ * Heartbeat mechanism to detect dead connections (Use a heartbeat mechanism to periodically check if the client is still connected. If a client misses a heartbeat, it can be disconnected and the connection closed)
+ * Message batching to reduce network traffic (Batch messages together before sending to reduce the number of packets sent over the network)
+ * Error recovery (Implement error handling and recovery mechanisms to ensure the server can handle and recover from errors gracefully)
+ * Load balance (Distribute incoming connections across multiple instances of the WebSocket server to distribute the load)
+ * Monitoring (Implement monitoring and logging to keep track of server performance and identify issues)
  * 
- * 
- * 
- * 
- * 
+
  * 
  */
